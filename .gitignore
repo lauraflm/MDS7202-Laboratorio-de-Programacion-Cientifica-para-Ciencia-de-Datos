@@ -1,8 +1,2 @@
-# Ignorar carpeta videos
-videos/
-
-# Ignorar todos los archivos .txt
-*.txt
-
-# Pero NO ignorar texts/171.txt
-!texts/171.txt
+# Ignorar 
+.DS_Store
