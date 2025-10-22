@@ -1,0 +1,57 @@
+## Laboratorio 8 - Respuestas
+## Javiera Arévalo Díaz - Laura Maldonado Lagos
+
+3.1.5
+
+Para evaluar el uso de recursos, se midió el tamaño de la imagen y el consumo en ejecución. La imagen de la API pesa 1.81 GB y el contenedor activo reporta una capa RW de 12.3 kB, sobre un tamaño virtual de 1.41 GB. En reposo, según `docker stats`, el servicio se mantiene estable con ~0.36–0.43 % de CPU y ~121–125 MiB de RAM. El healthcheck aparece “healthy”, `GET /` y `/docs` responden 200 OK, y el `POST /potabilidad/` entrega predicción correctamente.
+
+En términos prácticos, el contenedor es liviano en ejecución, ya que tiene una CPU y RAM bajas y es consistente entre máquinas gracias al empaquetado de dependencias. Lo menos favorable es el tamaño de la imagen, relativamente alto por las librerías que se usan como NumPy, scikit-learn, XGBoost y la toolchain.
+
+Si necesito optimizar, reduciría el tamaño de la imagen, seguir con `python:slim`, quitar el toolchain después de instalar, no incluir el modelo en la imagen (montarlo como volumen) y usar un build multi-stage. Además, guardaría el modelo en formato nativo de XGBoost (`save_model/load_model`) para evitar el warning de `pickle` y mejorar la compatibilidad entre versiones.
+
+
+
+3.2 Preguntas de Smapina (1 punto)
+Tras haber experimentado con Docker, Smapina desea profundizar más en el tema y decide realizarle las siguientes consultas:
+
+- ¿Cómo se diferencia Docker de una máquina virtual (VM)?
+
+Docker y una máquina virtual sirven para aislar entornos, pero lo hacen de forma muy distinta.
+Una máquina virtual (VM) simula todo un sistema operativo sobre otro sistema operativo, es decir, virtualiza el hardware completo. 
+Cada VM tiene su propio kernel, drivers y sistema base. Esto las hace muy pesadas, lentas de arrancar y consumidoras de recursos.
+Docker, en cambio, no virtualiza hardware, sino que usa el mismo kernel del sistema.
+Los contenedores comparten el kernel y solo aíslan los procesos, librerías y dependencias usando namespaces y cgroups de Linux. 
+Por eso, los contenedores son mucho más livianos, estos se procesan en segundos y permiten ejecutar decenas o cientos en un solo host sin el peso de múltiples sistemas operativos.
+
+- ¿Cuál es la diferencia entre usar Docker y ejecutar la aplicación directamente en el sistema local?
+
+Cuando se ejecuta una aplicación directamente en el sistema local, dependo del entorno de mi máquina, es decir de las versiones de Python, librerías instaladas, variables de entorno, sistema operativo, etc. 
+Si otra persona intenta correr mi proyecto en su equipo, puede fallar porque tiene versiones distintas o configuraciones diferentes.
+La gracia de utilizar Docker, es que encapsula la aplicación junto con todas sus dependencias dentro de una imagen. 
+Esa imagen se ejecuta igual en cualquier máquina que tenga Docker instalado, sin importar si es Windows, macOS o Linux, lo cual claramente propicia la reproducibilidad.
+Además, al correr en contenedor, la aplicación no ensucia ni modifica el entorno local (no instala paquetes globales, no cambia configuraciones del sistema). 
+
+- ¿Cómo asegura Docker la consistencia entre diferentes entornos de desarrollo y producción?
+
+Docker asegura la consistencia mediante las imágenes inmutables. 
+Una imagen de Docker define exactamente qué sistema base se usa (por ejemplo, python:3.12-slim), qué dependencias se instalan y qué comandos se ejecutan.
+El mismo Dockerfile que se usa para construir la imagen en desarrollo se utiliza para producción, garantizando que ambos entornos sean idénticos.
+De esta forma, si algo funciona en mi máquina dentro del contenedor, funcionará igual en el servidor.
+No hay diferencias en versiones de librerías, sistema operativo ni dependencias ocultas.
+También se pueden usar variables de entorno (por ejemplo, credenciales, rutas o modos de debug) para cambiar configuraciones sin modificar el código, lo que ayuda a mantener la coherencia entre distintos entornos.
+
+- ¿Cómo se gestionan los volúmenes en Docker para la persistencia de datos?
+
+Por defecto, los datos dentro de un contenedor se eliminan cuando este se borra. 
+Para evitar eso, Docker usa "volúmenes", que son espacios de almacenamiento persistentes fuera del ciclo de vida del contenedor.
+Existen tres tipos:
+Named volumes: creados y gestionados por Docker. Se pueden compartir entre contenedores y sobreviven incluso si el contenedor se elimina.
+Bind mounts: mapean una carpeta del sistema anfitrión dentro del contenedor (por ejemplo, -v $(pwd)/data:/app/data). Son útiles para desarrollo, porque los cambios se reflejan en tiempo real.
+Anonymous volumes: se crean automáticamente sin nombre y son más difíciles de reutilizar.
+Con los volúmenes puedo, por ejemplo, guardar una base de datos de MySQL en un volumen llamado msqldata y no perder los datos al recrear el contenedor. También puedo hacer backups o compartir datos entre servicios fácilmente.
+
+- ¿Qué son Dockerfile y docker-compose.yml, y cuál es su propósito?
+
+Un Dockerfile es un archivo de texto que contiene las instrucciones para construir una imagen Docker. Por lo que en este se define la imagen base, los comandos de instalación, las dependencias, los puertos expuestos y cómo se ejecuta la aplicación.
+Mientras que el docker-compose.yml sirve para orquestar varios contenedores que forman parte de una misma aplicación.
+Permite definir servicios (por ejemplo, una app web, una base de datos y un servidor Redis), sus puertos, volúmenes y variables de entorno en un solo archivo.
