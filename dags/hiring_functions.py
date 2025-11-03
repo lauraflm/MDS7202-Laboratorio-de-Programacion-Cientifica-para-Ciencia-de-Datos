@@ -1,5 +1,4 @@
 # dags/hiring_functions.py
-# dags/hiring_functions.py
 import os
 import json
 import joblib
@@ -12,6 +11,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
+
+import gradio as gr
 
 # Base de trabajo: AIRFLOW_HOME/runs/<ds>/{raw,splits,models}
 AIRFLOW_HOME = os.environ.get("AIRFLOW_HOME", "/opt/airflow")
@@ -65,9 +66,10 @@ def preprocess_and_train(**kwargs):
     y_train = pd.read_csv(os.path.join(splits, "y_train.csv")).squeeze("columns")
     y_test  = pd.read_csv(os.path.join(splits, "y_test.csv")).squeeze("columns")
 
-    # Categóricas esperadas del lab (ajústalas si tu CSV difiere)
-    cat_cols = [c for c in ["Gender", "EducationLevel", "RecruitmentStrategy"] if c in X_train.columns]
-    num_cols = [c for c in X_train.columns if c not in cat_cols]
+    # Categóricas esperadas del lab
+    cat_cols = X_train.columns.intersection(["Gender", "EducationLevel", "RecruitmentStrategy"])
+    num_cols = X_train.columns.difference(cat_cols)
+
 
     pre = ColumnTransformer(
         transformers=[
@@ -96,7 +98,7 @@ def preprocess_and_train(**kwargs):
     print(f"[METRICAS] accuracy={acc:.4f} | f1(positivo=1)={f1p:.4f}")
     print(f"[OK] modelo guardado en {out}")
 
-# 4) (1 pt) Interfaz Gradio usando tu plantilla exacta
+# 4) (1 pt) Interfaz Gradio
 def predict(file, model_path):
     pipeline = joblib.load(model_path)
     # Gradio entrega un objeto con .name; soportamos ambas formas
@@ -104,11 +106,11 @@ def predict(file, model_path):
     input_data = pd.read_json(file_path)
     predictions = pipeline.predict(input_data)
     print(f'La prediccion es: {predictions}')
-    labels = ["No contratado" if pred == 0 else "Contratado" for pred in predictions]
+    labels = pd.Series(predictions).map({0: "No contratado", 1: "Contratado"})
+    labels = labels.tolist()
     return {'Predicción': labels[0]}
 
 def gradio_interface(**kwargs):
-    import gradio as gr
     ds = kwargs["ds"]
     base = _dir(ds)
     model_path = os.path.join(base, "models", "model_random_forest.joblib")
@@ -123,5 +125,5 @@ def gradio_interface(**kwargs):
         title="Hiring Decision Prediction",
         description="Sube un archivo JSON con las características de entrada para predecir si Vale será contratada o no."
     )
-    # Si necesitas que el task de Airflow no quede bloqueado, añade prevent_thread_lock=True.
+    # Si task de Airflow no bloqueado ->> prevent_thread_lock=True.
     interface.launch(server_name="0.0.0.0", share=True, prevent_thread_lock=True)
