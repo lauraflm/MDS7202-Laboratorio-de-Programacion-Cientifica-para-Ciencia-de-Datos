@@ -1,0 +1,7 @@
+apache-airflow==2.9.3
+pandas==2.2.2
+scikit-learn==1.5.2
+joblib==1.4.2
+gradio==5.49.1
+numpy==1.26.4
+
