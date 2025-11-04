@@ -60,7 +60,7 @@ with DAG(
         python_callable=gradio_interface,
     )
 
-    # encadenamiento idéntico al DAG de referencia
+    # encadenamiento DAG (siguiendo la ref lineal)
     (
         start_pipeline
         >> create_folders_task

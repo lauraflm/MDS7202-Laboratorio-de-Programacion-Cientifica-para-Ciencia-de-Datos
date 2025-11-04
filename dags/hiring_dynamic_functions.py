@@ -4,6 +4,8 @@ import glob
 import json
 import joblib
 import pandas as pd
+import shutil
+import gradio as gr
 
 from typing import List
 from sklearn.model_selection import train_test_split
@@ -67,10 +69,10 @@ def split_data(**kwargs):
     y_test.to_csv(os.path.join(splits, "y_test.csv"), index=False)
     print("[OK] split guardado en splits/")
 
-# ——— util común
+# fun auxiliar para crear el preprocesador
 def _make_preproc(X: pd.DataFrame):
-    cat_cols = [c for c in ["Gender", "EducationLevel", "RecruitmentStrategy"] if c in X.columns]
-    num_cols = [c for c in X.columns if c not in cat_cols]
+    cat_cols = X.columns.intersection(["Gender", "EducationLevel", "RecruitmentStrategy"])
+    num_cols = X.columns.difference(cat_cols)
     pre = ColumnTransformer(
         transformers=[
             ("num", SimpleImputer(strategy="median"), num_cols),
@@ -83,7 +85,7 @@ def _make_preproc(X: pd.DataFrame):
     )
     return pre
 
-# 4) entrena UN modelo (se llamará 3 veces en paralelo desde el DAG)
+# 4) entrena UN modelo (se llamará 3 veces (paralelo) desde el DAG)
 def train_model(model_name: str, **kwargs):
     ds = kwargs["ds"]
     base = _dir(ds)
@@ -111,8 +113,8 @@ def train_model(model_name: str, **kwargs):
     joblib.dump(pipe, out)
     print(f"[OK] {model_name} entrenado → {out}")
 
-# 5) evalúa TODOS los modelos entrenados y deja el mejor como best_model.joblib
-def evaluate_and_select(**kwargs):
+# 5) evalúa todos los modelos entrenados y selecciona el mejor como best_model.joblib
+def evaluate_models(**kwargs):
     ds = kwargs["ds"]
     base = _dir(ds)
     splits = os.path.join(base, "splits")
@@ -134,14 +136,12 @@ def evaluate_and_select(**kwargs):
             best_acc, best_path = acc, path
 
     final = os.path.join(models, "best_model.joblib")
-    # reemplazar/renombrar al mejor (copy -> overwrite)
-    import shutil
+    # reemplazar al mejor (copy -> overwrite)
     shutil.copyfile(best_path, final)
     print(f"[MEJOR] {os.path.basename(best_path)} con accuracy={best_acc:.4f} → {final}")
 
 # 6) interfaz gradio que usa el MEJOR modelo
 def gradio_best_interface(**kwargs):
-    import gradio as gr
     ds = kwargs["ds"]
     base = _dir(ds)
     model_path = os.path.join(base, "models", "best_model.joblib")
