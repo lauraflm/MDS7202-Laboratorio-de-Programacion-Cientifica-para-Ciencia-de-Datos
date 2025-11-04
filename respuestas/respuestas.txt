@@ -1,0 +1,53 @@
+Javiera Arévalo Díaz
+Laura Maldonado Lagos
+Adicionalmente, responda (1 c/u):
+
+- ¿Cual es el accuracy de cada modelo en la ejecución de octubre? ¿Se obtienen los mismos resultados a partir de Noviembre?
+
+Ejecución de octubre (2024-10-05):
+- Gradient Boosting: 0.9067
+- Logistic Regression: 0.9133
+- Random Forest: 0.9267
+→ Mejor modelo: Random Forest (0.9267)
+
+Ejecución de noviembre (2024-11-05):
+- Gradient Boosting: 0.9333
+- Logistic Regression: 0.9100
+- Random Forest: 0.9300
+→ Mejor modelo: Gradient Boosting (0.9333)
+
+Con lo anterior, podemos ver que resultados no son idénticos, pero mantienen cercanos a los 0.9. 
+Sin embargo, es posible ver que existe  una ligera mejora a partir de noviembre y que cambia el mejor 
+modelo de Random Forest a Gradient Boosting, este último pasando de 0.9067 a 0.9333.
+
+Se adjuntan capturas de pantalla de las ejecuciones en ambas fechas:
+evaluate_hd_oct.png
+evaluate_hd_nov.png
+
+
+- Analice como afectó el añadir datos a sus modelos mediante el desempeño del modelo y en costo computacional.
+
+La inclusión de data_2.csv a partir de noviembre aumentó el tamaño total del conjunto de datos.
+Esto produjo una leve mejora en el desempeño, lo que nos dice que los modelos generalizan mejor con más información.
+Sin embargo, al ver costo computacional, se puede mencionar que el tiempo total de ejecución del DAG aumentó aproximadamente 4 a 6 minutos, 
+lo que nos indica que hay un costo asociado en las etapas de merge y entrenamiento.
+
+Consideramos que el aumento del costo no es excesivo, dado que la mejora en precisión justifica el tiempo adicional y tampoco es un aumento 
+tan notorio al tratarse aproximadamente de 2 minutos por un dataset adicional completo. 
+
+
+Se adjuntan capturas de pantalla:
+hd_run_duration.png
+
+
+- Muestre el esquema de su DAG ejecutado en octubre y en noviembre.
+
+- Octubre (2024-10-05):
+  El nodo download_data_2 fue omitido (estado skipped -> rosado). El flujo utilizó solo data_1.csv antes del merge → split → tres entrenamientos paralelos → evaluación.
+
+- Noviembre (2024-11-05):
+  Ambos nodos de descarga (download_data_1 y download_data_2) se ejecutaron con éxito. El merge combinó ambos datasets antes del split y los entrenamientos paralelos, manteniendo el mismo flujo posterior.
+
+Se adjuntan las imágenes de los esquemas de DAG para ambas fechas:
+dag_hd_oct.png
+dag_hd_nov.png

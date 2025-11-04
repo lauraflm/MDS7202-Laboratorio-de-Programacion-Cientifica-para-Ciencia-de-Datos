@@ -6,3 +6,4 @@ videos/
 
 # Pero NO ignorar texts/171.txt
 !texts/171.txt
+!respuestas/respuestas.txt
