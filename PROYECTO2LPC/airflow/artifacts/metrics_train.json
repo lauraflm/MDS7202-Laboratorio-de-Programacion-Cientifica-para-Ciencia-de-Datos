@@ -1,0 +1,39 @@
+{
+  "val": {
+    "roc_auc": 0.9324259304501265,
+    "avg_precision": 0.3372222521585533,
+    "f1_at_thr": 0.2589043514550328,
+    "precision_pos": 0.15191757082579868,
+    "recall_pos": 0.8753934657549115,
+    "confusion_matrix": [
+      [
+        265764,
+        45023
+      ],
+      [
+        1148,
+        8065
+      ]
+    ],
+    "threshold": 0.5
+  },
+  "test": {
+    "roc_auc": 0.8997423376663097,
+    "avg_precision": 0.3101330260197062,
+    "f1_at_thr": 0.28375448817830773,
+    "precision_pos": 0.17478665470402904,
+    "recall_pos": 0.7535306287667536,
+    "confusion_matrix": [
+      [
+        269333,
+        39550
+      ],
+      [
+        2740,
+        8377
+      ]
+    ],
+    "threshold": 0.5
+  },
+  "model_path": "/opt/airflow/artifacts/models/xgb_best.pkl"
+}

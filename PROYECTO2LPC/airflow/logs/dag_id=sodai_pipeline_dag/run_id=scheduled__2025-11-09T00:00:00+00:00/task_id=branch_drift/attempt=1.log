@@ -1,0 +1,38 @@
+[2025-11-17T02:51:46.952+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2025-11-17T02:51:46.976+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: sodai_pipeline_dag.branch_drift scheduled__2025-11-09T00:00:00+00:00 [queued]>
+[2025-11-17T02:51:46.982+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: sodai_pipeline_dag.branch_drift scheduled__2025-11-09T00:00:00+00:00 [queued]>
+[2025-11-17T02:51:46.982+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2025-11-17T02:51:46.989+0000] {taskinstance.py:2330} INFO - Executing <Task(BranchPythonOperator): branch_drift> on 2025-11-09 00:00:00+00:00
+[2025-11-17T02:51:46.998+0000] {logging_mixin.py:188} WARNING - /home/***/.local/lib/python3.12/site-packages/***/task/task_runner/standard_task_runner.py:61 DeprecationWarning: This process (pid=978) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2025-11-17T02:51:46.999+0000] {standard_task_runner.py:63} INFO - Started process 979 to run task
+[2025-11-17T02:51:46.999+0000] {standard_task_runner.py:90} INFO - Running: ['***', 'tasks', 'run', 'sodai_pipeline_dag', 'branch_drift', 'scheduled__2025-11-09T00:00:00+00:00', '--job-id', '24', '--raw', '--subdir', 'DAGS_FOLDER/sodai_pipeline.py', '--cfg-path', '/tmp/tmpc1nqlyo5']
+[2025-11-17T02:51:47.003+0000] {standard_task_runner.py:91} INFO - Job 24: Subtask branch_drift
+[2025-11-17T02:51:47.014+0000] {logging_mixin.py:188} WARNING - /home/***/.local/lib/python3.12/site-packages/***/settings.py:195 DeprecationWarning: The sql_alchemy_conn option in [core] has been moved to the sql_alchemy_conn option in [database] - the old setting has been used, but please update your config.
+[2025-11-17T02:51:47.031+0000] {task_command.py:426} INFO - Running <TaskInstance: sodai_pipeline_dag.branch_drift scheduled__2025-11-09T00:00:00+00:00 [running]> on host fddcaabe9a09
+[2025-11-17T02:51:47.073+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='grupo_sodai' AIRFLOW_CTX_DAG_ID='sodai_pipeline_dag' AIRFLOW_CTX_TASK_ID='branch_drift' AIRFLOW_CTX_EXECUTION_DATE='2025-11-09T00:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2025-11-09T00:00:00+00:00'
+[2025-11-17T02:51:47.073+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2025-11-17T02:51:47.082+0000] {baseoperator.py:399} WARNING - BranchPythonOperator.execute cannot be called outside TaskInstance!
+[2025-11-17T02:51:48.337+0000] {logging_mixin.py:188} INFO - [DRIFT] Comparando train vs últimas 4 semanas.
+[2025-11-17T02:51:48.340+0000] {logging_mixin.py:188} INFO - [DRIFT] Columnas numéricas monitoreadas: ['customer_id', 'product_id', 'items_cp', 'pedidos_cp', 'size', 'Y', 'X', 'num_deliver_per_week', 'compro_semana_pasada', 'promedio_compra']
+[2025-11-17T02:51:48.412+0000] {logging_mixin.py:188} INFO - [DRIFT] Reporte por columna:
+[2025-11-17T02:51:48.413+0000] {logging_mixin.py:188} INFO -   customer_id: mu_train=197581.9080, mu_recent=197581.9080, z=0.000
+[2025-11-17T02:51:48.414+0000] {logging_mixin.py:188} INFO -   product_id: mu_train=46618.3000, mu_recent=46618.3000, z=0.000
+[2025-11-17T02:51:48.414+0000] {logging_mixin.py:188} INFO -   items_cp: mu_train=0.1368, mu_recent=0.2669, z=0.053
+[2025-11-17T02:51:48.414+0000] {logging_mixin.py:188} INFO -   pedidos_cp: mu_train=0.0305, mu_recent=0.0482, z=0.086
+[2025-11-17T02:51:48.415+0000] {logging_mixin.py:188} INFO -   size: mu_train=0.9597, mu_recent=0.9597, z=0.000
+[2025-11-17T02:51:48.415+0000] {logging_mixin.py:188} INFO -   Y: mu_train=-46.5838, mu_recent=-46.5838, z=0.000
+[2025-11-17T02:51:48.416+0000] {logging_mixin.py:188} INFO -   X: mu_train=-107.8688, mu_recent=-107.8688, z=0.000
+[2025-11-17T02:51:48.416+0000] {logging_mixin.py:188} INFO -   num_deliver_per_week: mu_train=3.1680, mu_recent=3.1680, z=0.000
+[2025-11-17T02:51:48.416+0000] {logging_mixin.py:188} INFO -   compro_semana_pasada: mu_train=0.5540, mu_recent=0.5335, z=0.041
+[2025-11-17T02:51:48.416+0000] {logging_mixin.py:188} INFO -   promedio_compra: mu_train=0.0315, mu_recent=0.0272, z=0.120
+[2025-11-17T02:51:48.416+0000] {logging_mixin.py:188} INFO - [DRIFT] Columnas que superan z_threshold=0.5: []
+[2025-11-17T02:51:48.416+0000] {logging_mixin.py:188} INFO - [DRIFT] Drift NO detectado (cols_exceeding=0 < 2).
+[2025-11-17T02:51:48.478+0000] {python.py:237} INFO - Done. Returned value was: skip_train
+[2025-11-17T02:51:48.479+0000] {branch.py:36} INFO - Branch into skip_train
+[2025-11-17T02:51:48.480+0000] {skipmixin.py:178} INFO - Following branch skip_train
+[2025-11-17T02:51:48.500+0000] {skipmixin.py:246} INFO - Skipping tasks [('train_model', -1)]
+[2025-11-17T02:51:48.517+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2025-11-17T02:51:48.526+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=sodai_pipeline_dag, task_id=branch_drift, run_id=scheduled__2025-11-09T00:00:00+00:00, execution_date=20251109T000000, start_date=20251117T025146, end_date=20251117T025148
+[2025-11-17T02:51:48.566+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2025-11-17T02:51:48.604+0000] {taskinstance.py:3498} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2025-11-17T02:51:48.605+0000] {local_task_job_runner.py:222} INFO - ::endgroup::
