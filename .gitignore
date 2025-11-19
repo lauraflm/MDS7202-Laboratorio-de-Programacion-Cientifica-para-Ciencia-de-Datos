@@ -6,3 +6,6 @@ videos/
 
 # Pero NO ignorar texts/171.txt
 !texts/171.txt
+
+# No subir la data 
+data/
