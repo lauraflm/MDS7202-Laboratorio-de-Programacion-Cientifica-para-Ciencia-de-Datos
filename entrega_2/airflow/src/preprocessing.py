@@ -7,7 +7,7 @@ from .data_io import load_raw_data, save_features
 
 
 # =====================================================
-# 1. Transformadores auxiliares (sin depender de sklearn arriba)
+# 1. Transformadores auxiliares 
 # =====================================================
 
 class IQRClipper:
@@ -362,7 +362,7 @@ def _add_temporal_split(df):
 
 
 # ==================================================
-# 4. ColumnTransformer (preprocessor) con imports locales
+# 4. ColumnTransformer  con imports locales
 # ==================================================
 
 def make_preprocessor(df, use_size_bin: bool = True):

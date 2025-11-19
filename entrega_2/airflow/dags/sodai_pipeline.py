@@ -6,7 +6,6 @@ from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.utils.trigger_rule import TriggerRule
 
 
-# ========= Helpers: imports perezosos con sys.path fijo =========
 
 def _ensure_path():
     """

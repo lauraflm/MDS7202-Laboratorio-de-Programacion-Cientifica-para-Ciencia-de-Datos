@@ -8,7 +8,7 @@ videos/
 !texts/171.txt
 
 # No subir la data 
-data/
+#data/ ->> debería ser de esta forma, pero el dag necesita acceder a data/
 
 # No subir logs ni archivos temporales, ni runs
 __pycache__/
