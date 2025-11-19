@@ -403,7 +403,66 @@ El archivo `metrics_train.json` contiene:
 
 ---
 
-# 8. Consideraciones Técnicas y MLOps
+# 8. Interpretabilidad del Modelo con SHAP
+
+## **Análisis de Interpretabilidad Automatizado**
+
+El pipeline genera automáticamente **gráficos de interpretabilidad completos** utilizando SHAP (SHapley Additive exPlanations) durante cada entrenamiento.
+
+### **Gráficos SHAP Generados:**
+
+#### **📊 1. SHAP Summary Plot (Beeswarm)**
+- **Archivo**: `artifacts/plots/shap_summary_beeswarm.png`
+- **Propósito**: Muestra el impacto de cada feature en todas las predicciones
+- **Interpretación**: Dispersión de colores indica variabilidad del impacto por feature
+
+#### **📈 2. SHAP Summary Plot (Bar)**
+- **Archivo**: `artifacts/plots/shap_summary_bar.png`  
+- **Propósito**: Ranking de importancia basado en valores absolutos promedio
+- **Interpretación**: Features ordenadas por impacto real en predicciones
+
+#### **🔄 3. SHAP Waterfall Plots**
+- **Archivos**: 
+  - `shap_waterfall_positive.png` (caso predicción positiva)
+  - `shap_waterfall_negative.png` (caso predicción negativa)
+- **Propósito**: Explica predicciones individuales paso a paso
+- **Interpretación**: Cómo cada feature contribuye a la predicción final
+
+#### **⚡ 4. SHAP Force Plot**
+- **Archivo**: `artifacts/plots/shap_force_plot.png`
+- **Propósito**: Múltiples explicaciones individuales simultáneas
+- **Interpretación**: Visualización compacta de factores de decisión
+
+#### **📉 5. SHAP Partial Dependence Plots**
+- **Archivo**: `artifacts/plots/shap_partial_dependence.png`
+- **Propósito**: Relación entre top 3 features y predicciones
+- **Interpretación**: Comportamiento no lineal y umbrales de decisión
+
+### **Información SHAP en Tracking:**
+
+```json
+{
+  "interpretability": {
+    "shap_feature_importance": [
+      {"feature": "promedio_compra", "mean_abs_shap": 0.245},
+      {"feature": "compro_semana_pasada", "mean_abs_shap": 0.189}
+    ],
+    "shap_expected_value": 0.0288,
+    "shap_sample_size": 200,
+    "shap_status": "success"
+  }
+}
+```
+
+### **Características Técnicas:**
+- **Optimización**: Muestra de 200 observaciones para balance representatividad/eficiencia
+- **Robustez**: Manejo automático de errores con fallbacks
+- **Compatibilidad**: Detección automática de disponibilidad de SHAP
+- **Calidad**: Gráficos publication-ready con alta resolución (300 DPI)
+
+---
+
+# 9. Consideraciones Técnicas y MLOps
 
 ## **Robustez del Sistema:**
 - **Idempotencia**: Ejecutar múltiples veces el mismo día no genera errores
@@ -426,7 +485,7 @@ El archivo `metrics_train.json` contiene:
 
 ---
 
-# 9. Conclusiones
+# 10. Conclusiones
 
 Este pipeline de MLOps implementa un sistema productivo completo que:
 
