@@ -1,0 +1,27 @@
+# PROYECTO2LPC/bonus/recsys/docker-compose.yml
+version: "3.9"
+
+services:
+  recsys-backend:
+    build: ./backend
+    container_name: recsys-backend
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../../airflow/artifacts/predictions:/predictions
+    networks:
+      - recsys-net
+      
+  recsys-frontend:
+    build: ./frontend
+    container_name: recsys-frontend
+    ports:
+      - "7861:7861"
+    depends_on:
+      - recsys-backend
+    networks:
+      - recsys-net
+
+networks:
+  recsys-net:
+    driver: bridge
