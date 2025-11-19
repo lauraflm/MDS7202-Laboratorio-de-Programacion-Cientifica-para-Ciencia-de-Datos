@@ -1,45 +1,61 @@
 services:
-  postgres:
-    image: postgres:13
+  # Servicio de inicialización que se ejecuta una sola vez
+  airflow-init:
+    image: apache/airflow:2.9.1
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      PYTHONPATH: "/opt/airflow"
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: "admin"
+      _AIRFLOW_WWW_USER_PASSWORD: "admin"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
-      interval: 10s
-      retries: 5
+      - ./:/opt/airflow
+    command: >
+      bash -c "
+        pip install -r /opt/airflow/requirements.txt &&
+        airflow db migrate &&
+        airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
+      "
+    restart: "no"
 
   airflow-webserver:
     image: apache/airflow:2.9.1
     depends_on:
-      - postgres
+      airflow-init:
+        condition: service_completed_successfully
     environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      PYTHONPATH: "/opt/airflow"
     volumes:
       # 👇 aquí montas TODO lo que tienes en PROYECTO2LPC/airflow
       - ./:/opt/airflow
     ports:
       - "8080:8080"
-    command: webserver
+    command: >
+      bash -c "
+        pip install -r /opt/airflow/requirements.txt &&
+        airflow webserver
+      "
 
   airflow-scheduler:
     image: apache/airflow:2.9.1
     depends_on:
-      - postgres
+      airflow-init:
+        condition: service_completed_successfully
     environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      PYTHONPATH: "/opt/airflow"
     volumes:
       - ./:/opt/airflow
-    command: scheduler
-
-volumes:
-  postgres_data:
-
-
+    command: >
+      bash -c "
+        pip install -r /opt/airflow/requirements.txt &&
+        airflow scheduler
+      "

@@ -9,3 +9,10 @@ videos/
 
 # No subir la data 
 data/
+
+# No subir logs ni archivos temporales, ni runs
+__pycache__/
+entrega_2/airflow/logs/
+entrega_2/airflow/logs/
+entrega_2/airflow/airflow-webserver.pid
+entrega_2/airflow/airflow.db*

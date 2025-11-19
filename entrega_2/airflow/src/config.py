@@ -24,7 +24,7 @@ PRODUCTOS_PATH = RAW_DIR / "productos.parquet"
 FEATURES_PATH = PROCESSED_DIR / "weekly_features.parquet"
 
 # Modelo entrenado
-MODEL_PATH = MODELS_DIR / "xgb_pipeline.joblib"
+MODEL_PATH = MODELS_DIR / "xgb_best.pkl"
 
 # Archivo default (por si quieres tener uno "último disponible")
 # Pero ahora las predicciones se guardarán como:
