@@ -149,70 +149,361 @@ Operador vacío que marca el fin del pipeline.
 ```mermaid
 flowchart TD
     A[start] --> B[build_weekly_features]
-
+    
     B --> C{branch_drift}
-
-    C -->|drift| D[train_model]
+    
+    C -->|drift detectado| D[train_model]
     C -->|no drift| E[skip_train]
-
+    
     D --> F[join_after_train]
     E --> F[join_after_train]
-
+    
     F --> G[generate_predictions] --> H[end]
+    
+    style A fill:#e1f5fe
+    style H fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#fff3e0
+    style D fill:#e8f5e8
+    style E fill:#ffebee
+    style F fill:#f1f8e9
+    style G fill:#e3f2fd
+```
 
-4. Representación visual del DAG
+---
+
+# 4. Representación Visual del DAG en Airflow
+
+El DAG se visualiza en la interfaz web de Airflow (http://localhost:8080) con la siguiente estructura:
+
+```
+[start] → [build_weekly_features] → [branch_drift] ⟨decision⟩
+                                           ↓
+                              ┌─────────────┴─────────────┐
+                              ↓                           ↓
+                      [train_model]              [skip_train]
+                              ↓                           ↓
+                              └─────────────┬─────────────┘
+                                           ↓
+                                [join_after_train]
+                                           ↓
+                                [generate_predictions]
+                                           ↓
+                                        [end]
+```
+
+**Configuración del DAG:**
+- **DAG ID**: `sodai_pipeline_dag`
+- **Schedule**: `@weekly` (ejecuta cada semana)
+- **Start Date**: 2024-01-01
+- **Catchup**: False (no ejecuta para fechas pasadas)
+- **Max Active Runs**: 1 (evita ejecuciones concurrentes)
+- **Tags**: ["sodai", "mlops", "entrega2"]
+
+---
+
+# 5. Diseño para Futuros Datos
 
 La arquitectura del pipeline fue diseñada para simular un entorno productivo real, donde semanalmente llegan nuevos datos y el sistema debe decidir si reentrenar o no, manteniendo la estabilidad del modelo en el tiempo. A continuación se detalla cómo se implementaron estos tres componentes clave.
 
-**Integración Automática de Nuevos Datos**
+## **5.1 Integración Automática de Nuevos Datos**
 
 El pipeline está preparado para incorporar nuevas semanas de datos sin intervención manual.
-Esto se logra gracias a la función load_raw_data() ubicada en src/data_io.py, la cual carga todos los archivos de transacciones que existan en la carpeta data/raw/:
+Esto se logra gracias a la función `load_raw_data()` ubicada en `src/data_io.py`, la cual carga todos los archivos de transacciones que existan en la carpeta `data/raw/`:
 
+```python
 tx_files = sorted(RAW_DIR.glob("transacciones*.parquet"))
 dfs = [pd.read_parquet(f) for f in tx_files]
 transacciones = pd.concat(dfs, ignore_index=True)
+```
 
+**Ventajas del diseño:**
+- **Escalabilidad**: Nuevos archivos se incorporan automáticamente
+- **Flexibilidad**: Soporta cualquier nomenclatura `transacciones*.parquet`
+- **Robustez**: Sin hard-coding de nombres de archivos específicos
 
-Esto significa que, si aparece un archivo nuevo como:
-- transacciones_2024_15.parquet
-- transacciones_nuevos_datos.parquet
-el DAG lo incorporará automáticamente en la próxima ejecución, reconstruirá la base semanal utilizando todos los datos históricos + los nuevos y no requiere modificar código.
+**Ejemplo de incorporación:**
+Si aparecen archivos nuevos como:
+- `transacciones_2024_15.parquet`
+- `transacciones_nuevos_datos.parquet`
 
+El DAG los incorporará automáticamente en la próxima ejecución semanal, reconstruirá la base semanal utilizando todos los datos históricos + los nuevos y no requiere modificar código.
 
-**Detección de Drift entre Datos Antiguos y Nuevos**
+---
 
-El módulo src/drift.py implementa un mecanismo para detectar data drift.
-A partir de métricas como PSI (Population Stability Index), se comparan:
-la distribución del dataset antiguo (train), con la distribución del dataset nuevo (semanas recientes).
+## **5.2 Detección de Drift entre Datos Antiguos y Nuevos**
 
-Ejemplo simplificado:
+El módulo `src/drift.py` implementa un sistema robusto de detección de data drift utilizando **Population Stability Index (PSI)**.
 
-psis[col] = _psi(df_train[col], df_test[col])
-psi_mean = np.mean(list(psis.values()))
-has_drift = psi_mean > threshold
+### **Metodología:**
+```python
+def detect_drift():
+    # Cargar datos procesados
+    df = pd.read_parquet(PROCESSED_DIR / "weekly_features.parquet")
+    
+    # Dividir en datasets temporal
+    df_train = df[df['semana'] <= 36]     # Datos históricos
+    df_test = df[df['semana'] > 44]       # Datos recientes
+    
+    # Calcular PSI por columna numérica
+    psis = {}
+    for col in numeric_columns:
+        psis[col] = _psi(df_train[col], df_test[col])
+    
+    # Decisión basada en umbral
+    psi_mean = np.mean(list(psis.values()))
+    has_drift = psi_mean > DRIFT_THRESHOLD
+    
+    return has_drift
+```
 
-Si psi_mean supera el umbral configurado, se considera que existe drift.
-Este resultado (True/False) es devuelto al DAG mediante el BranchPythonOperator.
+### **Métricas de Drift:**
+- **PSI (Population Stability Index)**: Mide cambios en distribuciones
+- **Umbral configurado**: `DRIFT_THRESHOLD = 0.2` (ajustable en `config.py`)
+- **Columnas monitoreadas**: Variables numéricas de features
 
-**Reentrenamiento Automático Condicional**
+### **Lógica de Decisión:**
+- **PSI < 0.1**: Sin drift (estabilidad)
+- **0.1 ≤ PSI < 0.2**: Drift ligero (monitoreo)
+- **PSI ≥ 0.2**: Drift significativo → **Reentrenamiento requerido**
 
-El DAG utiliza un BranchPythonOperator para decidir si reentrenar:
-return "train_model" if has_drift else "skip_train"
+---
 
-* Si hay drift:
-Se ejecuta train_model, donde el pipeline reentrena el modelo, recalcula métricas, guarda una nueva versión del modelo productivo.
+## **5.3 Reentrenamiento Automático Condicional**
 
-* Si no hay drift:
-Se ejecuta skip_train, evitando un reentrenamiento innecesario. Ambas rutas confluyen en join_after_train gracias a: 
-trigger_rule = TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS
+El DAG utiliza un `BranchPythonOperator` para crear flujo condicional inteligente:
 
+```python
+def _branch_drift_wrapper():
+    has_drift = detect_drift()
+    return "train_model" if has_drift else "skip_train"
+```
 
-**Generación de Predicciones para la Semana Siguiente (t+1)**
+### **Flujo de Reentrenamiento:**
 
-La etapa final generate_predictions realiza:
-- Detectar la última semana presente en los datos (t).
-- Construir una base de scoring para la semana futura (t+1).
-- Aplicar el modelo más reciente (entrenado o previo).
+**Escenario 1: CON Drift Detectado**
+```
+branch_drift → train_model → join_after_train → generate_predictions
+```
+- Se ejecuta entrenamiento completo
+- Se generan nuevas métricas
+- Se guarda nuevo modelo optimizado
+- Pipeline continúa con modelo actualizado
+
+**Escenario 2: SIN Drift Detectado**
+```
+branch_drift → skip_train → join_after_train → generate_predictions
+```
+- Se evita reentrenamiento innecesario
+- Se mantiene modelo actual (estable)
+- Se conservan recursos computacionales
+- Pipeline continúa con modelo existente
+
+### **Sincronización de Flujos:**
+```python
+join_after_train = EmptyOperator(
+    task_id="join_after_train",
+    trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS,
+)
+```
+- **Trigger Rule**: Permite que el pipeline continue independientemente de qué rama se ejecutó
+- **Robustez**: Evita fallos si una rama no se ejecuta
+
+---
+
+## **5.4 Generación de Predicciones para la Semana Siguiente (t+1)**
+
+La etapa final `generate_predictions` implementa un sistema de predicción prospectiva:
+
+### **Proceso técnico:**
+1. **Detección automática de última semana disponible:**
+   ```python
+   max_semana = df['semana'].max()  # t
+   next_semana = max_semana + 1     # t+1
+   ```
+
+2. **Construcción de base de scoring:**
+   ```python
+   # Crear combinaciones cliente × producto para semana t+1
+   scoring_df = create_scoring_base(next_semana)
+   ```
+
+3. **Aplicación del modelo más reciente:**
+   ```python
+   # Cargar modelo (entrenado o existente)
+   model = load_model()
+   predictions = model.predict_proba(scoring_df)
+   ```
+
+4. **Persistencia con timestamping:**
+   ```python
+   output_path = f"artifacts/predictions/predicciones_semana_{next_semana}.parquet"
+   predictions_df.to_parquet(output_path)
+   ```
+
+### **Ventajas del diseño prospectivo:**
+- **Predicción real**: Siempre para semana futura (t+1)
+- **Actualización continua**: Cada ejecución genera nueva semana
+- **Trazabilidad**: Archivos separados por semana
+- **Flexibilidad**: Se adapta automáticamente a nuevos datos
+
+### **Ejemplo de flujo temporal:**
+```
+Semana actual en datos: 53
+↓
+Pipeline detecta: max_semana = 53
+↓
+Genera predicciones para: semana 54
+↓
+Guarda: predicciones_semana_54.parquet
+↓
+Próxima ejecución con datos de semana 54:
+→ Genera predicciones para semana 55
+```
+
+---
+
+# 7. Estructura de Archivos y Artefactos
+
+## **Datos Generados por el Pipeline:**
+
+```
+airflow/
+├── data/
+│   ├── raw/                              # Datos de entrada
+│   │   ├── transacciones*.parquet       # Datos históricos + nuevos
+│   │   ├── clientes.parquet
+│   │   └── productos.parquet
+│   └── processed/
+│       └── weekly_features.parquet      # Features procesadas
+├── artifacts/
+│   ├── models/
+│   │   └── xgb_best.pkl                # Modelo entrenado
+│   ├── metrics_train.json               # Métricas de entrenamiento
+│   └── predictions/
+│       └── predicciones_semana_*.parquet # Predicciones por semana
+└── logs/
+    └── dag_id=sodai_pipeline_dag/       # Logs de ejecución
+```
+
+## **Métricas y Monitoreo:**
+
+El archivo `metrics_train.json` contiene:
+```json
+{
+  "auc": 0.85,
+  "average_precision": 0.72,
+  "precision": 0.68,
+  "recall": 0.74,
+  "f1": 0.71,
+  "training_timestamp": "2024-11-19T10:30:00Z",
+  "model_version": "xgb_v1.2"
+}
+```
+
+---
+
+# 8. Consideraciones Técnicas y MLOps
+
+## **Robustez del Sistema:**
+- **Idempotencia**: Ejecutar múltiples veces el mismo día no genera errores
+- **Recuperación**: Si falla una tarea, se puede reanudar desde ese punto
+- **Logging**: Trazabilidad completa de cada ejecución
+- **Versionado**: Modelos con timestamping automático
+
+## **Escalabilidad:**
+- **Datos crecientes**: Soporta volúmenes incrementales sin modificación
+- **Distribución**: Docker permite despliegue en múltiples entornos
+- **Paralelización**: Tareas independientes pueden ejecutarse en paralelo
+- **Recursos**: Control de memoria y CPU via Docker Compose
+
+## **Configuración Productiva:**
+- **Schedule**: `@weekly` - Ejecuta automáticamente cada semana
+- **Retries**: 1 intento adicional si falla una tarea
+- **Timeout**: 5 minutos de delay entre reintentos
+- **Max Active Runs**: 1 - Evita ejecuciones concurrentes
+- **Catchup**: False - No ejecuta para fechas pasadas al activar
+
+---
+
+# 9. Conclusiones
+
+Este pipeline de MLOps implementa un sistema productivo completo que:
+
+1. **Automatiza el flujo completo** desde ingesta de datos hasta predicciones
+2. **Detecta cambios en los datos** mediante técnicas de drift detection
+3. **Reentrenamiento inteligente** solo cuando es necesario
+4. **Escalabilidad** para incorporar nuevos datos sin modificaciones
+5. **Monitoreo y trazabilidad** completa de todas las ejecuciones
+
+El diseño simula un entorno productivo real donde cada semana:
+- Llegan nuevos datos de transacciones
+- El sistema evalúa la necesidad de reentrenar
+- Se generan predicciones para la semana siguiente
+- Todo queda documentado y trackeado
+
+La implementación en Airflow permite un control granular del flujo, manejo de errores, y facilita el mantenimiento del sistema en producción.
+
+---
+
+## **Autores**
+- Grupo SodAI - Entrega 2
+- MDS7202 - Laboratorio de Programación Científica para Ciencia de Datos
+- Noviembre 2024
+
+---
 
 Guardar las predicciones en: artifacts/predictions/predicciones_semana_{t+1}.parquet
+
+---
+
+# 6. Configuración y Ejecución del Pipeline
+
+## **Prerrequisitos**
+
+1. **Docker y Docker Compose instalados**
+2. **Estructura de archivos en `/opt/airflow/`**:
+   ```
+   airflow/
+   ├── dags/sodai_pipeline.py
+   ├── src/
+   │   ├── config.py
+   │   ├── data_io.py
+   │   ├── preprocessing.py
+   │   ├── training.py
+   │   ├── predict.py
+   │   └── drift.py
+   ├── data/
+   │   ├── raw/transacciones*.parquet
+   │   └── processed/
+   └── artifacts/
+       ├── models/
+       ├── metrics_train.json
+       └── predictions/
+   ```
+
+## **Comandos de Ejecución**
+
+```bash
+# 1. Levantar servicios de Airflow
+cd airflow/
+docker-compose up -d
+
+# 2. Acceder a la interfaz web
+# http://localhost:8080
+# Usuario: airflow / Contraseña: airflow
+
+# 3. Activar el DAG desde la interfaz web
+# o manualmente ejecutar:
+docker exec -it airflow-webserver airflow dags trigger sodai_pipeline_dag
+```
+
+## **Monitoreo y Logs**
+
+- **Interfaz Web**: http://localhost:8080
+- **Logs por tarea**: Accesibles desde la interfaz de Airflow
+- **Archivos de log**: `airflow/logs/dag_id=sodai_pipeline_dag/`
+- **Métricas**: `airflow/artifacts/metrics_train.json`
+- **Modelos**: `airflow/artifacts/models/xgb_best.pkl`
+
+---
