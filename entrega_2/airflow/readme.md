@@ -140,6 +140,16 @@ El DAG se visualiza en la interfaz web de Airflow (http://localhost:8080) con la
 - **Max Active Runs**: 1 (evita ejecuciones concurrentes)
 - **Tags**: ["sodai", "mlops", "entrega2"]
 
+
+**Imagen del DAG:**
+
+![WhatsApp Image 2025-11-19 at 21 25 05](https://github.com/user-attachments/assets/c70d5b3f-7604-43b1-9121-e694deb72764)
+
+
+**Video de youtube ejecutando el DAG:**
+
+https://youtu.be/qyNoT1GKsXo
+
 ---
 
 # 5. Diseño para Futuros Datos
@@ -260,33 +270,9 @@ El pipeline genera automáticamente análisis de interpretabilidad utilizando SH
   }
 }
 ```
-
 ---
 
-# 8. Consideraciones Técnicas y MLOps
-
-**Robustez del Sistema:**
-- **Idempotencia**: Múltiples ejecuciones no generan conflictos
-- **Recuperación**: Reanudación desde puntos de falla
-- **Logging**: Trazabilidad completa de ejecuciones
-- **Versionado**: Timestamping automático de modelos
-
-**Escalabilidad:**
-- **Volúmenes crecientes**: Soporte para datos incrementales
-- **Distribución**: Despliegue via Docker en múltiples entornos
-- **Paralelización**: Tareas independientes ejecutables en paralelo
-- **Gestión de recursos**: Control via Docker Compose
-
-**Configuración Productiva:**
-- **Schedule**: `@weekly` para ejecución automática
-- **Retries**: 1 intento adicional por tarea
-- **Timeout**: 5 minutos entre reintentos
-- **Max Active Runs**: 1 para evitar concurrencia
-- **Catchup**: False para evitar ejecuciones históricas
-
----
-
-# 9. Configuración y Ejecución
+# 8. Configuración y Ejecución
 
 ## Prerrequisitos
 - Docker y Docker Compose instalados
@@ -316,7 +302,7 @@ docker exec -it airflow-webserver airflow dags trigger sodai_pipeline_dag
 
 ---
 
-# 10. Conclusiones
+# 9. Conclusiones
 
 Este pipeline de MLOps implementa un sistema productivo que automatiza el flujo completo desde ingesta hasta predicciones, detecta cambios en distribuciones de datos, implementa reentrenamiento inteligente y mantiene escalabilidad para incorporar datos futuros sin modificaciones de código.
 
