@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import pandas as pd
 import numpy as np
 import traceback
+from pathlib import Path
 from model_utils import load_model
 
 
@@ -51,6 +52,21 @@ class PredictionResponse(BaseModel):
     product_id: int
     prediction_proba: float
     prediction_binary: int  # 0 o 1 basado en umbral 0.5
+
+
+# Modelos para predicción de próxima semana
+class CustomerProductPair(BaseModel):
+    customer_id: int
+    product_id: int
+    prediction_proba: float
+    prediction_binary: int
+
+
+class WeekPredictionResponse(BaseModel):
+    semana_predicha: int
+    total_duplas: int
+    duplas_predichas: List[CustomerProductPair]
+    umbral_usado: float
 
 
 @app.get("/")
@@ -155,4 +171,161 @@ def predict_simple(req: SimplePredictionRequest):
         raise HTTPException(
             status_code=400, 
             detail=f"Error procesando predicción: {str(e)}"
+        )
+
+
+def load_base_data():
+    """
+    Carga los datos base necesarios para generar combinaciones cliente-producto
+    """
+    try:
+        # Rutas de los archivos en el backend
+        current_dir = Path(__file__).resolve().parent
+        
+        # Intentar cargar desde múltiples ubicaciones posibles
+        possible_paths = [
+            current_dir / "data" / "raw",
+            current_dir.parent / "data" / "raw",
+            current_dir / ".." / "data" / "raw",
+        ]
+        
+        data_dir = None
+        for path in possible_paths:
+            if path.exists():
+                data_dir = path
+                break
+        
+        if data_dir is None:
+            # Si no encuentra los datos, usar valores por defecto
+            print("ADVERTENCIA: No se encontraron datos base, usando valores simulados")
+            return generate_default_combinations()
+        
+        # Cargar clientes y productos
+        clientes = pd.read_parquet(data_dir / "clientes.parquet")
+        productos = pd.read_parquet(data_dir / "productos.parquet")
+        
+        return clientes, productos
+        
+    except Exception as e:
+        print(f"Error cargando datos base: {e}")
+        return generate_default_combinations()
+
+
+def generate_default_combinations():
+    """
+    Genera combinaciones por defecto cuando no hay acceso a los datos reales
+    """
+    # Simulamos algunos clientes y productos
+    clientes = pd.DataFrame({
+        'customer_id': range(1, 11),  # 10 clientes
+        'customer_type': ['MINIMARKET'] * 10,
+        'segment': ['MEDIUM'] * 10,
+        'X': [-107.90] * 10,
+        'Y': [-46.56] * 10,
+        'num_deliver_per_week': [3] * 10
+    })
+    
+    productos = pd.DataFrame({
+        'product_id': range(1, 6),  # 5 productos
+        'sub_category': ['GASEOSAS'] * 5,
+        'package': ['BOTELLA'] * 5,
+        'brand': ['Brand 1'] * 5,
+        'size': [0.33] * 5
+    })
+    
+    return clientes, productos
+
+
+def create_week_combinations(clientes_df, productos_df, target_week):
+    """
+    Crea todas las combinaciones cliente-producto para una semana específica
+    """
+    # Crear todas las combinaciones posibles
+    combinations = []
+    
+    for _, cliente in clientes_df.iterrows():
+        for _, producto in productos_df.iterrows():
+            combination = {
+                'customer_id': cliente['customer_id'],
+                'product_id': producto['product_id'],
+                'semana': target_week,
+                'size': producto.get('size', 0.33),
+                'num_deliver_per_week': cliente.get('num_deliver_per_week', 3),
+                'X': cliente.get('X', -107.90),
+                'Y': cliente.get('Y', -46.56),
+                'compro_semana_pasada': 0.0,  # Conservador por defecto
+                'promedio_compra': 0.02,  # Mediana típica
+                'customer_type': cliente.get('customer_type', 'MINIMARKET'),
+                'sub_category': producto.get('sub_category', 'GASEOSAS'),
+                'segment': cliente.get('segment', 'MEDIUM'),
+                'package': producto.get('package', 'BOTELLA'),
+                'brand': producto.get('brand', 'Brand 1'),
+            }
+            combinations.append(combination)
+    
+    return pd.DataFrame(combinations)
+
+
+@app.post("/predict_next_week", response_model=WeekPredictionResponse)
+def predict_next_week(threshold: float = 0.5, semana: int = 54):
+    """
+    Predice todas las duplas cliente-producto que comprarán en la semana especificada.
+    
+    Args:
+        threshold: Umbral de probabilidad para considerar una compra (default 0.5)
+        semana: Semana específica para hacer la predicción (default 54)
+    
+    Returns:
+        Lista de duplas cliente-producto que se predice comprarán
+    """
+    if model is None:
+        raise HTTPException(status_code=500, detail="Modelo no disponible")
+    
+    try:
+        # Usar la semana especificada por el usuario
+        target_week = semana
+        
+        # Cargar datos base
+        clientes_df, productos_df = load_base_data()
+        
+        # Crear todas las combinaciones para la semana objetivo
+        combinations_df = create_week_combinations(clientes_df, productos_df, target_week)
+        
+        print(f"DEBUG: Generadas {len(combinations_df)} combinaciones para semana {target_week}")
+        
+        # Realizar predicciones para todas las combinaciones
+        predictions = model.predict_proba(combinations_df)[:, 1]  # Probabilidad clase 1
+        
+        # Filtrar solo las duplas que superan el umbral
+        high_prob_indices = predictions >= threshold
+        filtered_combinations = combinations_df[high_prob_indices].copy()
+        filtered_predictions = predictions[high_prob_indices]
+        
+        # Preparar respuesta
+        duplas_predichas = []
+        for i, (_, row) in enumerate(filtered_combinations.iterrows()):
+            dupla = CustomerProductPair(
+                customer_id=int(row['customer_id']),
+                product_id=int(row['product_id']),
+                prediction_proba=float(filtered_predictions[i]),
+                prediction_binary=1
+            )
+            duplas_predichas.append(dupla)
+        
+        # Ordenar por probabilidad descendente
+        duplas_predichas.sort(key=lambda x: x.prediction_proba, reverse=True)
+        
+        return WeekPredictionResponse(
+            semana_predicha=target_week,
+            total_duplas=len(duplas_predichas),
+            duplas_predichas=duplas_predichas,
+            umbral_usado=threshold
+        )
+        
+    except Exception as e:
+        print(f"Error en predicción semanal: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Error procesando predicción semanal: {str(e)}"
         )
