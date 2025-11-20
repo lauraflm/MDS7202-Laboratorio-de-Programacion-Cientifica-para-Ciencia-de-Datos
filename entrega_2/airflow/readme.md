@@ -28,7 +28,7 @@ El DAG se denomina `sodai_pipeline_dag` y su estructura de tareas es la siguient
 
 ---
 
-# 2. Explicación detallada de cada tarea
+# 2. Explicación Detallada de Cada Tarea
 
 ### 1. start
 Operador vacío que marca el inicio del pipeline. Se utiliza para mantener una estructura clara y estandarizada del flujo de trabajo.
@@ -140,12 +140,6 @@ El DAG se visualiza en la interfaz web de Airflow (http://localhost:8080) con la
 - **Max Active Runs**: 1 (evita ejecuciones concurrentes)
 - **Tags**: ["sodai", "mlops", "entrega2"]
 
-![WhatsApp Image 2025-11-19 at 21 25 05](https://github.com/user-attachments/assets/71e403a6-1303-45d3-bf4e-26572cd21a01)
-
-
-**Enlace al video de youtube en donde se ejecuta el DAG:**
-
-https://youtu.be/qyNoT1GKsXo
 ---
 
 # 5. Diseño para Futuros Datos
@@ -267,10 +261,32 @@ El pipeline genera automáticamente análisis de interpretabilidad utilizando SH
 }
 ```
 
+---
+
+# 8. Consideraciones Técnicas y MLOps
+
+**Robustez del Sistema:**
+- **Idempotencia**: Múltiples ejecuciones no generan conflictos
+- **Recuperación**: Reanudación desde puntos de falla
+- **Logging**: Trazabilidad completa de ejecuciones
+- **Versionado**: Timestamping automático de modelos
+
+**Escalabilidad:**
+- **Volúmenes crecientes**: Soporte para datos incrementales
+- **Distribución**: Despliegue via Docker en múltiples entornos
+- **Paralelización**: Tareas independientes ejecutables en paralelo
+- **Gestión de recursos**: Control via Docker Compose
+
+**Configuración Productiva:**
+- **Schedule**: `@weekly` para ejecución automática
+- **Retries**: 1 intento adicional por tarea
+- **Timeout**: 5 minutos entre reintentos
+- **Max Active Runs**: 1 para evitar concurrencia
+- **Catchup**: False para evitar ejecuciones históricas
 
 ---
 
-# 8. Configuración y Ejecución
+# 9. Configuración y Ejecución
 
 ## Prerrequisitos
 - Docker y Docker Compose instalados
@@ -300,13 +316,13 @@ docker exec -it airflow-webserver airflow dags trigger sodai_pipeline_dag
 
 ---
 
-# 9. Conclusiones
+# 10. Conclusiones
 
-Este pipeline de MLOps implementa un sistema productivo que automatiza el flujo completo desde el ingreso de las bases hasta predicciones, detecta cambios en distribuciones de datos, implementa reentrenamiento inteligente y mantiene escalabilidad para incorporar datos futuros sin modificaciones de código.
+Este pipeline de MLOps implementa un sistema productivo que automatiza el flujo completo desde ingesta hasta predicciones, detecta cambios en distribuciones de datos, implementa reentrenamiento inteligente y mantiene escalabilidad para incorporar datos futuros sin modificaciones de código.
 
 El diseño simula un entorno real donde cada semana se incorporan nuevos datos, el sistema evalúa automáticamente la necesidad de reentrenamiento y genera predicciones para períodos futuros, manteniendo documentación y trazabilidad completa de todas las operaciones.
 
-La implementación en Airflow proporciona control del flujo, manejo de errores y facilita el mantenimiento del sistema en entornos productivos.
+La implementación en Airflow proporciona control granular del flujo, manejo robusto de errores y facilita el mantenimiento del sistema en entornos productivos.
 
 ---
 
