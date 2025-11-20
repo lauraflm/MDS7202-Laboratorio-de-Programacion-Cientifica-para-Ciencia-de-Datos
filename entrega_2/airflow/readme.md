@@ -140,6 +140,9 @@ El DAG se visualiza en la interfaz web de Airflow (http://localhost:8080) con la
 - **Max Active Runs**: 1 (evita ejecuciones concurrentes)
 - **Tags**: ["sodai", "mlops", "entrega2"]
 
+![WhatsApp Image 2025-11-19 at 21 25 05](https://github.com/user-attachments/assets/71e403a6-1303-45d3-bf4e-26572cd21a01)
+
+
 ---
 
 # 5. Diseño para Futuros Datos
