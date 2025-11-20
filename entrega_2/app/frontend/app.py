@@ -170,8 +170,6 @@ def predict_next_week_automatic(threshold: float, semana: int) -> str:
 - **Prioritario (≥80%):** Duplas con muy alta probabilidad - enfocar campañas aquí
 - **Recomendado (60-79%):** Duplas con buena probabilidad - incluir en estrategia  
 - **Considerar (≤59%):** Duplas con probabilidad moderada - evaluar según recursos
-
-**Acción recomendada:** Enfocar esfuerzos comerciales en estos {result['total_duplas']} pares cliente-producto para maximizar conversión en la próxima semana.
         """
         
         return output

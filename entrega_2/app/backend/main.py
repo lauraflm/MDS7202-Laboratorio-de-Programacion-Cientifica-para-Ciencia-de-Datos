@@ -291,8 +291,6 @@ def predict_next_week(threshold: float = 0.5, semana: int = 54):
         # Crear todas las combinaciones para la semana objetivo
         combinations_df = create_week_combinations(clientes_df, productos_df, target_week)
         
-        print(f"DEBUG: Generadas {len(combinations_df)} combinaciones para semana {target_week}")
-        
         # Realizar predicciones para todas las combinaciones
         predictions = model.predict_proba(combinations_df)[:, 1]  # Probabilidad clase 1
         
