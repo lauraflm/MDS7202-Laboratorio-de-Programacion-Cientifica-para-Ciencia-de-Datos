@@ -143,6 +143,9 @@ El DAG se visualiza en la interfaz web de Airflow (http://localhost:8080) con la
 ![WhatsApp Image 2025-11-19 at 21 25 05](https://github.com/user-attachments/assets/71e403a6-1303-45d3-bf4e-26572cd21a01)
 
 
+**Enlace al video de youtube en donde se ejecuta el DAG:**
+
+https://youtu.be/qyNoT1GKsXo
 ---
 
 # 5. Diseño para Futuros Datos
