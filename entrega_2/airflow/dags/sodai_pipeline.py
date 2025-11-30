@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator, BranchPythonOperator
@@ -38,9 +37,8 @@ def _generate_predictions_wrapper():
 
 def _branch_drift_wrapper():
     _ensure_path()
-    from src.drift import detect_drift
-    has_drift = detect_drift()
-    return "train_model" if has_drift else "skip_train"
+    # Versión para pruebas: forzar siempre el entrenamiento
+    return "train_model"
 
 # ================================================================
 
