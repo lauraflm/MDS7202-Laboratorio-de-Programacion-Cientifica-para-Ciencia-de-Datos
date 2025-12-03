@@ -6,3 +6,25 @@ videos/
 
 # Pero NO ignorar texts/171.txt
 !texts/171.txt
+
+
+# macOS
+.DS_Store
+
+# Airflow artifacts
+entrega_2/airflow/artifacts/
+entrega_2/airflow/mlruns/
+
+# Data
+entrega_2/airflow/data/batches/
+entrega_2/airflow/data/processed/
+
+# Parquet files (no subir datos)
+*.parquet
+
+# Predictions
+entrega_2/airflow/artifacts/predictions/*.csv
+
+# Ignorar carpeta videos (si existe)
+videos/
+
