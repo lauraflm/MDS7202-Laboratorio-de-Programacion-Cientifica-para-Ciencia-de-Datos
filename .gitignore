@@ -28,3 +28,17 @@ entrega_2/airflow/artifacts/predictions/*.csv
 # Ignorar carpeta videos (si existe)
 videos/
 
+
+# Ignorar archivos pesados de Airflow en entrega_2
+entrega_2/airflow/airflow.db
+entrega_2/airflow/logs/
+entrega_2/airflow/artifacts/
+entrega_2/airflow/mlruns/
+
+# Ignorar caches y compilados
+entrega_2/airflow/dags/__pycache__/
+entrega_2/airflow/src/__pycache__/
+entrega_2/app/backend/src/__pycache__/
+
+# Ignorar basura de macOS
+.DS_Store
