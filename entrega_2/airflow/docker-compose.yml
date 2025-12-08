@@ -12,7 +12,7 @@ services:
       _AIRFLOW_WWW_USER_USERNAME: "admin"
       _AIRFLOW_WWW_USER_PASSWORD: "admin"
     volumes:
-        - ./data:/opt/airflow/data
+      - ./:/opt/airflow
 
     command: >
       bash -c "
@@ -33,7 +33,6 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       PYTHONPATH: "/opt/airflow"
     volumes:
-      # 👇 aquí montas TODO lo que tienes en PROYECTO2LPC/airflow
       - ./:/opt/airflow
     ports:
       - "8080:8080"
